@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "agent_version": "v2",
+    "query": "Hôm nay thời tiết thế nào?",
+    "started_at": "2026-04-06T05:35:04.255094",
+    "ended_at": "2026-04-06T05:35:09.694675",
+    "outcome": "success",
+    "total_steps": 3
+  },
+  "steps": [
+    {
+      "timestamp": "2026-04-06T05:35:04.255094",
+      "event": "AGENT_V2_START",
+      "data": {
+        "query": "Hôm nay thời tiết thế nào?"
+      }
+    },
+    {
+      "timestamp": "2026-04-06T05:35:09.694675",
+      "event": "AGENT_V2_LLM_OUTPUT",
+      "data": {
+        "step": 1,
+        "attempt": 1,
+        "output_preview": "Thought: The user is asking about the weather today, but they haven't specified a city or location. I need to ask them for more information before I can proceed with any tool calls.\n\nFinal Answer: Xin chào! 😊 Tôi cần biết **bạn muốn kiểm tra thời tiết ở thành phố nào** để có thể giúp bạn lên kế hoạc",
+        "tokens": {
+          "prompt_tokens": 696,
+          "completion_tokens": 240,
+          "total_tokens": 936
+        },
+        "latency_ms": 5439
+      }
+    },
+    {
+      "timestamp": "2026-04-06T05:35:09.694675",
+      "event": "AGENT_V2_DONE",
+      "data": {
+        "steps": 1,
+        "final_answer_preview": "Xin chào! 😊 Tôi cần biết **bạn muốn kiểm tra thời tiết ở thành phố nào** để có thể giúp bạn lên kế hoạch du lịch.\n\nVí dụ, bạn có thể hỏi:\n- *\"Thời tiết ở Hà Nội hôm nay thế nào?\"*\n- *\"Tôi có nên đi du"
+      }
+    }
+  ]
+}
