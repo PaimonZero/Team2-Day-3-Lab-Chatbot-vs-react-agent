@@ -1,103 +1,80 @@
-"""
-AGENT V1 — Weather Tools
-=========================
-NGƯỜI LÀM: Thành viên A
-
-Implement 2 functions:
-- get_coordinates(city: str) → gọi Open-Meteo Geocoding API
-- get_weather(lat: float, lon: float) → gọi Open-Meteo Forecast API
-
-Lưu ý V1: Không có retry, không validate đầu vào, basic error handling.
-"""
-
 import requests
-from typing import Optional
+import json
+from typing import Dict, Any
 
-GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
-FORECAST_URL  = "https://api.open-meteo.com/v1/forecast"
-
-# WMO weather interpretation codes (simplified)
-WMO_CODES = {
-    0: "Clear sky",
-    1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-    45: "Fog", 48: "Icy fog",
-    51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
-    61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
-    71: "Slight snow", 73: "Moderate snow", 75: "Heavy snow",
-    80: "Slight showers", 81: "Moderate showers", 82: "Violent showers",
-    95: "Thunderstorm", 96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
-}
-
-
-def get_coordinates(city: str) -> dict:
+def get_coordinates(city_name: str) -> str:
     """
-    Lấy tọa độ (lat, lon) của một thành phố.
-
-    Args:
-        city: Tên thành phố (ví dụ: "Hanoi", "Tokyo")
-
-    Returns:
-        dict với keys: lat, lon, name, country
-        Hoặc dict với key 'error' nếu không tìm thấy
+    [V1] Tìm kiếm kinh độ và vĩ độ của một thành phố.
+    Phiên bản cơ bản: Gọi API 1 lần, trả về kết quả đơn giản.
     """
-    params = {
-        "name": city,
-        "count": 1,
-        "language": "en",
-        "format": "json"
-    }
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={city_name}&count=1&language=en&format=json"
+    
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        
+        if "results" not in data or len(data["results"]) == 0:
+            return f"Lỗi: Không tìm thấy toạ độ cho thành phố '{city_name}'."
+            
+        location = data["results"][0]
+        return f"Toạ độ của {city_name}: latitude={location['latitude']}, longitude={location['longitude']}"
+        
+    except Exception as e:
+        return f"Lỗi API: {str(e)}"
 
-    response = requests.get(GEOCODING_URL, params=params, timeout=10)
-    data = response.json()
-
-    if not data.get("results"):
-        return {"error": f"City '{city}' not found"}
-
-    result = data["results"][0]
-    return {
-        "lat": result["latitude"],
-        "lon": result["longitude"],
-        "name": result["name"],
-        "country": result.get("country", "Unknown"),
-    }
-
-
-def get_weather(lat: float, lon: float) -> dict:
+def get_weather(latitude: float, longitude: float) -> str:
     """
-    Lấy thông tin thời tiết hiện tại theo tọa độ.
-
-    Args:
-        lat: Vĩ độ
-        lon: Kinh độ
-
-    Returns:
-        dict với: temperature_c, wind_speed_kmh, weather_code, weather_desc
-        Hoặc dict với key 'error' nếu API lỗi
+    [V1] Lấy thông tin thời tiết cơ bản dựa trên toạ độ.
     """
-    params = {
-        "latitude": lat,
-        "longitude": lon,
-        "current": [
-            "temperature_2m",
-            "wind_speed_10m",
-            "weather_code",
-        ],
-        "wind_speed_unit": "kmh",
-        "forecast_days": 1,
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current=temperature_2m,wind_speed_10m,weather_code"
+    
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        
+        current = data.get("current", {})
+        temp = current.get("temperature_2m", "Unknown")
+        wind = current.get("wind_speed_10m", "Unknown")
+        
+        return f"Thời tiết tại ({latitude}, {longitude}): Nhiệt độ {temp}°C, Tốc độ gió {wind} km/h."
+        
+    except Exception as e:
+        return f"Lỗi lấy thời tiết: {str(e)}"
+
+# Meta-data Configuration để nhét vào System Prompt của LLM
+WEATHER_TOOLS_CONFIG = [
+    {
+        "name": "get_coordinates",
+        "description": "Dùng để lấy vĩ độ (latitude) và kinh độ (longitude) của một địa danh. Input là tên thành phố (vd: 'Tokyo'). Phải gọi hàm này trước khi gọi get_weather.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "city_name": {
+                    "type": "string",
+                    "description": "Tên phổ thông của thành phố hoặc địa danh"
+                }
+            },
+            "required": ["city_name"]
+        }
+    },
+    {
+        "name": "get_weather",
+        "description": "Dùng để tra cứu thời tiết hiện tại. Bắt buộc input phải là latitude (toạ độ ngang) và longitude (toạ độ dọc) kiểu số thực (float).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number",
+                    "description": "Vĩ độ (vd: 21.02)"
+                },
+                "longitude": {
+                    "type": "number",
+                    "description": "Kinh độ (vd: 105.83)"
+                }
+            },
+            "required": ["latitude", "longitude"]
+        }
     }
-
-    response = requests.get(FORECAST_URL, params=params, timeout=10)
-    data = response.json()
-
-    if "current" not in data:
-        return {"error": "Failed to fetch weather data"}
-
-    current = data["current"]
-    weather_code = current.get("weather_code", 0)
-
-    return {
-        "temperature_c": current.get("temperature_2m"),
-        "wind_speed_kmh": current.get("wind_speed_10m"),
-        "weather_code": weather_code,
-        "weather_desc": WMO_CODES.get(weather_code, f"Unknown code {weather_code}"),
-    }
+]
