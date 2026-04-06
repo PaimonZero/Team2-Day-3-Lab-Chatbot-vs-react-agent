@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "question": "Hôm nay thời tiết Hà Nội như nào?"
+  },
+  {
+    "id": 2,
+    "question": "Chiều nay ở Hà Nội ra đường nên chuẩn bị những gì?"
+  },
+  {
+    "id": 3,
+    "question": "Hôm nay Hà Nội hay Đà Nẵng nóng hơn?"
+  },
+  {
+    "id": 4,
+    "question": "Thời tiết hôm nay ở TP. HCM thế nào?"
+  },
+  {
+    "id": 5,
+    "question": "Tối nay ở Hải Phòng có an toàn để đi xe máy không?"
+  }
+]
