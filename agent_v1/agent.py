@@ -1,7 +1,7 @@
 """
 AGENT V1 — ReAct Agent (Basic)
 ================================
-NGƯỜI LÀM: Ta (nhóm trưởng)
+NGƯỜI LÀM: Mai Tấn Thành - 2A202600127 (nhóm trưởng)
 
 Implement ReAct loop cơ bản:
   Thought → Action → Observation → ... → Final Answer

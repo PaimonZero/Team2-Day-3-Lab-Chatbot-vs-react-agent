@@ -1,7 +1,7 @@
 """
 AGENT V2 — ReAct Agent (Improved)
 ====================================
-NGƯỜI LÀM: Ta (nhóm trưởng)
+NGƯỜI LÀM: Mai Tấn Thành - 2A202600127 (nhóm trưởng)
 
 Cải tiến so với V1 — dựa trên failure traces đã ghi lại:
 

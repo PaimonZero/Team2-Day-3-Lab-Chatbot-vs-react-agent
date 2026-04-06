@@ -1,7 +1,7 @@
 # Group Report: Lab 3 — Smart Weather Planner Agent
 
 - **Team Name**: Team 2
-- **Team Members**: [Nhóm trưởng], Thành viên A, Thành viên B, Thành viên C, Thành viên D
+- **Team Members**: Mai Tấn Thành - 2A202600127 (nhóm trưởng), Thành viên A, Thành viên B, Thành viên C, Thành viên D
 - **Deployment Date**: 2026-04-06
 
 ---
@@ -133,7 +133,7 @@ User Query
 
 | Thành viên | Phần đảm nhận | Files |
 |-----------|--------------|-------|
-| Nhóm trưởng | ReAct Agent core (v1+v2), Flowchart, Trace Analysis, Group Report | `agent_v1/agent.py`, `agent_v2/agent.py`, `report/` |
+| Mai Tấn Thành - 2A202600127 (nhóm trưởng) | ReAct Agent core (v1+v2), Flowchart, Trace Analysis, Group Report | `agent_v1/agent.py`, `agent_v2/agent.py`, `report/` |
 | Thành viên A | Weather tools (v1+v2) | `*/tools/weather_tools.py` |
 | Thành viên B | Risk tools (v1+v2) | `*/tools/risk_tools.py` |
 | Thành viên C | Chatbot Baseline | `chatbot_baseline/chatbot.py` |
