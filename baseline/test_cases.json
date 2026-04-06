@@ -1,10 +1,42 @@
 [
-  { "id": 1, "question": "Hà Nội hôm nay thời tiết như nào?" },
-  { "id": 2, "question": "Hôm nay Hà Nội có mưa không?" },
-  { "id": 3, "question": "Hà Nội hôm nay 30 độ, tôi có nên mang áo khoác không?" },
-  { "id": 4, "question": "Hôm nay thời tiết thế nào?" },
-  { "id": 5, "question": "Thời tiết ở abcxyz hôm nay?" },
-  { "id": 6, "question": "Mai Hà Nội có mưa không và nên chuẩn bị gì?" },
-  { "id": 7, "question": "Nếu trời 35 độ và có nắng gắt thì tôi nên làm gì?" },
-  { "id": 8, "question": "Có nên đi xe máy ở Hải Phòng tối nay không?" }
+  {
+    "id": 1,
+    "type": "happy_path",
+    "question": "Thời tiết ở Hà Nội hôm nay như thế nào?"
+  },
+  {
+    "id": 2,
+    "type": "multi_step_recommendation",
+    "question": "Tôi định đi chạy bộ ở Đà Nẵng sáng mai, thời tiết có phù hợp không?"
+  },
+  {
+    "id": 3,
+    "type": "future_forecast",
+    "question": "Cuối tuần này TP.HCM có mưa không? Tôi đang lên kế hoạch picnic."
+  },
+  {
+    "id": 4,
+    "type": "missing_location",
+    "question": "Hôm nay trời có nắng không?"
+  },
+  {
+    "id": 5,
+    "type": "invalid_location",
+    "question": "Thời tiết ở thành phố Atlantis hôm nay thế nào?"
+  },
+  {
+    "id": 6,
+    "type": "hypothetical_no_tool",
+    "question": "Nếu nhiệt độ ngoài trời là 38 độ C và độ ẩm 90%, tôi nên mặc gì và uống gì?"
+  },
+  {
+    "id": 7,
+    "type": "out_of_domain_clear",
+    "question": "Giá vàng SJC hôm nay là bao nhiêu?"
+  },
+  {
+    "id": 8,
+    "type": "out_of_domain_borderline",
+    "question": "Tôi nên mặc outfit màu gì đi dự tiệc tối nay trông đẹp nhất?"
+  }
 ]
