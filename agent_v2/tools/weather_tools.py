@@ -1,18 +1,10 @@
 import json
-import logging
 import time
 from typing import Any, Dict, Optional
 
 import requests
 
-# ─── Logging ──────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s – %(message)s",
-)
-logger = logging.getLogger("weather_tools_v2")
-
-# ─── WMO Weather Interpretation Codes ─────────────────────────────────────────
+# ─── WMO Weather Interpretation Codes → Tiếng Việt ───────────────────────────
 WEATHER_CODES: Dict[int, str] = {
     0:  "Trời quang đãng ☀️",
     1:  "Chủ yếu quang đãng 🌤️",
@@ -38,7 +30,7 @@ WEATHER_CODES: Dict[int, str] = {
 }
 
 
-# ─── Internal Helpers ──────────────────────────────────────────────────────────
+# ─── Internal Helpers ─────────────────────────────────────────────────────────
 
 def _get_with_retry(
     url: str,
@@ -46,7 +38,7 @@ def _get_with_retry(
     backoff_factor: float = 1.5,
 ) -> Dict[str, Any]:
     """
-    Gọi HTTP GET với retry và exponential backoff.
+    Gọi HTTP GET với exponential backoff retry.
 
     Chiến lược:
       - Lần 1: thử ngay
@@ -54,37 +46,21 @@ def _get_with_retry(
       - Lần 3: đợi backoff_factor^1 = 2.25s
       - Sau max_retries lần → raise exception cuối cùng
 
-    Args:
-        url           (str)  : URL cần gọi.
-        max_retries   (int)  : Số lần thử tối đa (default=3).
-        backoff_factor(float): Hệ số tính thời gian chờ giữa các lần retry.
-
     Raises:
-        requests.exceptions.RequestException: Khi hết lượt retry.
+        requests.exceptions.RequestException: khi hết lượt retry.
     """
     last_error: Optional[Exception] = None
 
     for attempt in range(1, max_retries + 1):
         try:
-            logger.debug("Attempt %d/%d → GET %s", attempt, max_retries, url)
             response = requests.get(url, timeout=10)
             response.raise_for_status()
             return response.json()
-
         except requests.exceptions.RequestException as exc:
             last_error = exc
             if attempt < max_retries:
                 wait = backoff_factor ** (attempt - 1)
-                logger.warning(
-                    "Lần thử %d/%d thất bại (%s). Retry sau %.1fs…",
-                    attempt, max_retries, exc, wait,
-                )
                 time.sleep(wait)
-            else:
-                logger.error(
-                    "Tất cả %d lần thử đều thất bại. Lỗi cuối: %s",
-                    max_retries, exc,
-                )
 
     raise last_error  # type: ignore[misc]
 
@@ -97,29 +73,26 @@ def _describe_weather(code: Optional[int]) -> str:
 
 
 def _error_json(code: str, message: str) -> str:
-    """Tạo JSON error response chuẩn."""
+    """Tạo JSON error response chuẩn có error_code để Agent tự xử lý."""
     return json.dumps(
         {"status": "error", "error_code": code, "message": message},
         ensure_ascii=False,
     )
 
 
-# ─── Public Tool Functions ─────────────────────────────────────────────────────
+# ─── Public Tool Functions ────────────────────────────────────────────────────
 
 def get_coordinates(city_name: str) -> str:
     """
-    [V2] Lấy toạ độ địa lý (latitude, longitude) của một thành phố.
-
-    Cải tiến so với V1:
-      - Retry 3 lần với exponential backoff
-      - Trả về JSON chuẩn {status, city, country, latitude, longitude}
-      - Error JSON có error_code để Agent tự xử lý fallback
+    Lấy toạ độ địa lý (latitude, longitude) của một thành phố.
 
     Args:
         city_name (str): Tên thành phố (vd: 'Hanoi', 'Ho Chi Minh City').
 
     Returns:
         str: JSON string với status="success" hoặc status="error".
+             Success: {status, city, country, latitude, longitude}
+             Error:   {status, error_code, message}
     """
     url = (
         "https://geocoding-api.open-meteo.com/v1/search"
@@ -161,20 +134,19 @@ def get_coordinates(city_name: str) -> str:
 
 def get_weather(latitude: float, longitude: float) -> str:
     """
-    [V2] Lấy thông tin thời tiết hiện tại đầy đủ từ toạ độ.
-
-    Cải tiến so với V1:
-      - Thêm: feels_like, humidity, precipitation, rain, wind_gusts, visibility
-      - weather_description tiếng Việt từ WMO weather_code
-      - Trả về JSON chuẩn → Risk Engine dễ phân tích
-      - Retry 3 lần với backoff; visibility xử lý graceful khi null
+    Lấy thông tin thời tiết hiện tại đầy đủ từ toạ độ.
 
     Args:
-        latitude  (float): Vĩ độ (vd: 21.0285).
-        longitude (float): Kinh độ (vd: 105.8542).
+        latitude  (float): Vĩ độ — lấy từ kết quả get_coordinates.
+        longitude (float): Kinh độ — lấy từ kết quả get_coordinates.
 
     Returns:
         str: JSON string chứa đầy đủ thông tin thời tiết.
+             Success: {status, weather_description, weather_code,
+                       temperature_c, feels_like_c, humidity_percent,
+                       precipitation_mm, rain_mm, wind_speed_kmh,
+                       wind_gusts_kmh, visibility_m}
+             Error:   {status, error_code, message}
     """
     params = ",".join([
         "temperature_2m",
@@ -197,22 +169,23 @@ def get_weather(latitude: float, longitude: float) -> str:
         current = data.get("current", {})
         weather_code = current.get("weather_code")
 
-        # visibility có thể None ở một số khu vực → giữ nguyên None, không crash
-        obs: Dict[str, Any] = {
-            "status": "success",
-            "weather_description": _describe_weather(weather_code),
-            "weather_code": weather_code,
-            "temperature_c": current.get("temperature_2m"),
-            "feels_like_c": current.get("apparent_temperature"),
-            "humidity_percent": current.get("relative_humidity_2m"),
-            "precipitation_mm": current.get("precipitation", 0.0),
-            "rain_mm": current.get("rain", 0.0),
-            "wind_speed_kmh": current.get("wind_speed_10m"),
-            "wind_gusts_kmh": current.get("wind_gusts_10m"),
-            # None nếu API không hỗ trợ khu vực này; Risk Engine cần kiểm tra null
-            "visibility_m": current.get("visibility"),
-        }
-        return json.dumps(obs, ensure_ascii=False)
+        return json.dumps(
+            {
+                "status": "success",
+                "weather_description": _describe_weather(weather_code),
+                "weather_code": weather_code,
+                "temperature_c": current.get("temperature_2m"),
+                "feels_like_c": current.get("apparent_temperature"),
+                "humidity_percent": current.get("relative_humidity_2m"),
+                "precipitation_mm": current.get("precipitation", 0.0),
+                "rain_mm": current.get("rain", 0.0),
+                "wind_speed_kmh": current.get("wind_speed_10m"),
+                "wind_gusts_kmh": current.get("wind_gusts_10m"),
+                # None nếu API không hỗ trợ khu vực này
+                "visibility_m": current.get("visibility"),
+            },
+            ensure_ascii=False,
+        )
 
     except requests.exceptions.Timeout:
         return _error_json("TIMEOUT", "API thời tiết không phản hồi (timeout). Hãy thử lại.")
@@ -222,18 +195,18 @@ def get_weather(latitude: float, longitude: float) -> str:
         return _error_json("UNKNOWN", f"Lỗi không xác định khi lấy thời tiết: {exc}")
 
 
-# ─── Tool Schema – Anthropic Format ───────────────────────────────────────────
+# ─── Tool Schema – dùng trong agent nếu cần ──────────────────────────────────
 WEATHER_TOOLS_CONFIG = [
     {
         "name": "get_coordinates",
         "description": (
             "LẤY TOẠ ĐỘ ĐỊA LÝ. "
-            "Bạn PHẢI gọi tool này ĐẦU TIÊN bất cứ khi nào người dùng đề cập đến tên địa điểm "
+            "Bạn PHẢI gọi tool này ĐẦU TIÊN bất cứ khi nào user đề cập đến tên địa điểm "
             "mà bạn chưa có latitude/longitude xác thực. "
-            "KHÔNG được tự suy đoán toạ độ từ kiến thức của bạn — dữ liệu PHẢI đến từ tool này. "
+            "KHÔNG được tự suy đoán toạ độ — dữ liệu PHẢI đến từ tool này. "
             "Trả về JSON: {status, city, country, latitude, longitude}."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "city_name": {
@@ -255,19 +228,18 @@ WEATHER_TOOLS_CONFIG = [
             "LUÔN PHẢI gọi 'get_coordinates' TRƯỚC để lấy toạ độ chính xác. "
             "TUYỆT ĐỐI không được tự đoán hay hardcode latitude/longitude. "
             "Trả về JSON đầy đủ: nhiệt độ, cảm giác nhiệt, độ ẩm, lượng mưa, "
-            "tốc độ gió, gió giật, tầm nhìn, mô tả thời tiết tiếng Việt. "
-            "Dùng dữ liệu này để Risk Engine phân tích và đưa ra khuyến nghị an toàn."
+            "tốc độ gió, gió giật, tầm nhìn, mô tả thời tiết tiếng Việt."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "latitude": {
                     "type": "number",
-                    "description": "Vĩ độ kiểu Float, lấy từ kết quả của get_coordinates.",
+                    "description": "Vĩ độ kiểu Float — lấy từ kết quả của get_coordinates.",
                 },
                 "longitude": {
                     "type": "number",
-                    "description": "Kinh độ kiểu Float, lấy từ kết quả của get_coordinates.",
+                    "description": "Kinh độ kiểu Float — lấy từ kết quả của get_coordinates.",
                 },
             },
             "required": ["latitude", "longitude"],
@@ -280,34 +252,3 @@ TOOL_FUNCTIONS = {
     "get_coordinates": get_coordinates,
     "get_weather": get_weather,
 }
-
-
-# ─── Quick Demo / Test ─────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    print("=" * 60)
-    print("🌦️   [V2] Weather Tools – Full Test Suite")
-    print("=" * 60)
-
-    # ── Test 1: Happy path – Hà Nội ──────────────────────────────
-    print("\n[TEST 1] get_coordinates('Hanoi')")
-    raw = get_coordinates("Hanoi")
-    coords = json.loads(raw)
-    print(json.dumps(coords, indent=2, ensure_ascii=False))
-
-    if coords["status"] == "success":
-        lat, lon = coords["latitude"], coords["longitude"]
-        print(f"\n[TEST 2] get_weather(lat={lat}, lon={lon})")
-        raw_wx = get_weather(lat, lon)
-        weather = json.loads(raw_wx)
-        print(json.dumps(weather, indent=2, ensure_ascii=False))
-
-    # ── Test 2: Thành phố không tồn tại ─────────────────────────
-    print("\n[TEST 3] get_coordinates('XYZ_UnknownCity123')  ← error case")
-    raw_err = get_coordinates("XYZ_UnknownCity123")
-    print(json.dumps(json.loads(raw_err), indent=2, ensure_ascii=False))
-
-    # ── Test 3: Thêm một thành phố khác ─────────────────────────
-    print("\n[TEST 4] get_coordinates('Da Nang')")
-    raw_dn = get_coordinates("Da Nang")
-    coords_dn = json.loads(raw_dn)
-    print(json.dumps(coords_dn, indent=2, ensure_ascii=False))
