@@ -1,7 +1,7 @@
 # Agent V2 — ReAct Agent (Improved)
 
 **Người làm:**
-- `agent.py` → **Ta (nhóm trưởng)** — cải tiến từ v1 dựa trên failure traces
+- `agent.py` → **Mai Tấn Thành - 2A202600127 (nhóm trưởng)** — cải tiến từ v1 dựa trên failure traces
 - `tools/weather_tools.py` → **Thành viên A** — cải tiến v1
 - `tools/risk_tools.py` → **Thành viên B** — cải tiến v1
 
