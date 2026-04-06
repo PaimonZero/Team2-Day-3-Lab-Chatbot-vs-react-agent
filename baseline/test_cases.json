@@ -1,22 +1,10 @@
 [
-  {
-    "id": 1,
-    "question": "Hôm nay thời tiết Hà Nội như nào?"
-  },
-  {
-    "id": 2,
-    "question": "Chiều nay ở Hà Nội ra đường nên chuẩn bị những gì?"
-  },
-  {
-    "id": 3,
-    "question": "Hôm nay Hà Nội hay Đà Nẵng nóng hơn?"
-  },
-  {
-    "id": 4,
-    "question": "Thời tiết hôm nay ở TP. HCM thế nào?"
-  },
-  {
-    "id": 5,
-    "question": "Tối nay ở Hải Phòng có an toàn để đi xe máy không?"
-  }
+  { "id": 1, "question": "Hà Nội hôm nay thời tiết như nào?" },
+  { "id": 2, "question": "Hôm nay Hà Nội có mưa không?" },
+  { "id": 3, "question": "Hà Nội hôm nay 30 độ, tôi có nên mang áo khoác không?" },
+  { "id": 4, "question": "Hôm nay thời tiết thế nào?" },
+  { "id": 5, "question": "Thời tiết ở abcxyz hôm nay?" },
+  { "id": 6, "question": "Mai Hà Nội có mưa không và nên chuẩn bị gì?" },
+  { "id": 7, "question": "Nếu trời 35 độ và có nắng gắt thì tôi nên làm gì?" },
+  { "id": 8, "question": "Có nên đi xe máy ở Hải Phòng tối nay không?" }
 ]
