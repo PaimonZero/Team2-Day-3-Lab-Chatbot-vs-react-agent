@@ -1,7 +1,7 @@
 # Agent V1 — ReAct Agent (Basic)
 
 **Người làm:**
-- `agent.py` → **Ta (nhóm trưởng)**
+- `agent.py` → **Mai Tấn Thành - 2A202600127 (nhóm trưởng)**
 - `tools/weather_tools.py` → **Thành viên A**
 - `tools/risk_tools.py` → **Thành viên B**
 

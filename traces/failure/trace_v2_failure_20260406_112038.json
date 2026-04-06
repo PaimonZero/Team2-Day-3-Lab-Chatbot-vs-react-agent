@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "agent_version": "v2",
+    "query": "hello?",
+    "started_at": "2026-04-06T04:20:37.997350",
+    "ended_at": "2026-04-06T04:20:38.044054",
+    "outcome": "failure",
+    "total_steps": 4
+  },
+  "steps": [
+    {
+      "timestamp": "2026-04-06T04:20:37.997350",
+      "event": "AGENT_V2_START",
+      "data": {
+        "query": "hello?"
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:20:38.039330",
+      "event": "AGENT_V2_LLM_ERROR",
+      "data": {
+        "step": 1,
+        "attempt": 1,
+        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:20:38.040344",
+      "event": "AGENT_V2_LLM_ERROR",
+      "data": {
+        "step": 1,
+        "attempt": 2,
+        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:20:38.043323",
+      "event": "AGENT_V2_LLM_ERROR",
+      "data": {
+        "step": 1,
+        "attempt": 3,
+        "error": "\"Could not resolve authentication method. Expected either api_key or auth_token to be set. Or for one of the `X-Api-Key` or `Authorization` headers to be explicitly omitted\""
+      }
+    }
+  ]
+}

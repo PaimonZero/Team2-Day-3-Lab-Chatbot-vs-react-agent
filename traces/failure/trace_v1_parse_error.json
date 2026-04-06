@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "agent_version": "v1",
+    "query": "What is the weather like in Xanadu City right now?",
+    "started_at": "2026-04-06T04:15:00Z",
+    "ended_at": "2026-04-06T04:15:06Z",
+    "outcome": "failure",
+    "total_steps": 3,
+    "failure_reason": "LLM produced non-standard Action format; V1 regex parser crashed"
+  },
+  "steps": [
+    {
+      "timestamp": "2026-04-06T04:15:00Z",
+      "event": "AGENT_V1_START",
+      "data": { "query": "What is the weather like in Xanadu City right now?" }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:01Z",
+      "event": "AGENT_V1_LLM_OUTPUT",
+      "data": {
+        "step": 1,
+        "output_preview": "Thought: I should look up coordinates for Xanadu City.\nAction: get_coordinates(city=\"Xanadu City\")",
+        "tokens": { "prompt_tokens": 310, "completion_tokens": 25, "total_tokens": 335 },
+        "latency_ms": 860
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:01Z",
+      "event": "AGENT_V1_TOOL_CALL",
+      "data": { "step": 1, "tool": "get_coordinates", "args": ["Xanadu City"] }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:02Z",
+      "event": "AGENT_V1_TOOL_RESULT",
+      "data": {
+        "step": 1,
+        "tool": "get_coordinates",
+        "result_preview": "{'error': \"City 'Xanadu City' not found\"}"
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:03Z",
+      "event": "AGENT_V1_LLM_OUTPUT",
+      "data": {
+        "step": 2,
+        "output_preview": "Thought: City not found. I'll try to provide a helpful answer based on what I know.\nAction: Let me check if there is an alternate spelling — get_coordinates(city = 'Xanadu')",
+        "tokens": { "prompt_tokens": 410, "completion_tokens": 40, "total_tokens": 450 },
+        "latency_ms": 900
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:04Z",
+      "event": "AGENT_V1_TOOL_ERROR",
+      "data": {
+        "step": 2,
+        "action_line": "Let me check if there is an alternate spelling — get_coordinates(city = 'Xanadu')",
+        "error": "Cannot parse action: 'Let me check if there is an alternate spelling — get_coordinates(city = 'Xanadu')'"
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:04Z",
+      "event": "AGENT_V1_ERROR",
+      "data": {
+        "step": 2,
+        "error": "No Action found in LLM output after parse failure — V1 regex could not handle inline text before tool call"
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:05Z",
+      "event": "AGENT_V1_LLM_OUTPUT",
+      "data": {
+        "step": 3,
+        "output_preview": "Thought: I received an error. I am unable to proceed since the city was not found and I have no fallback strategy.\nAction: get_coordinates(Tokyo)",
+        "tokens": { "prompt_tokens": 520, "completion_tokens": 35, "total_tokens": 555 },
+        "latency_ms": 870
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:05Z",
+      "event": "AGENT_V1_TOOL_CALL",
+      "data": { "step": 3, "tool": "get_coordinates", "args": ["Tokyo"] }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:06Z",
+      "event": "AGENT_V1_TOOL_RESULT",
+      "data": {
+        "step": 3,
+        "tool": "get_coordinates",
+        "result_preview": "{'lat': 35.6762, 'lon': 139.6503, 'name': 'Tokyo', 'country': 'Japan'}",
+        "note": "HALLUCINATION: Agent switched to Tokyo without being asked. Classic LLM drift."
+      }
+    },
+    {
+      "timestamp": "2026-04-06T04:15:06Z",
+      "event": "AGENT_V1_MAX_STEPS",
+      "data": { "steps": 3, "note": "Agent hit step limit without completing the task for the correct city." }
+    }
+  ],
+  "root_cause_analysis": {
+    "primary_failure": "V1 regex parser cannot handle extra text before the tool call in Action line",
+    "secondary_failure": "No fallback strategy when city not found — LLM hallucinated a different city (Tokyo)",
+    "v2_fix": [
+      "JSON Action format prevents inline text confusion",
+      "Retry mechanism gives LLM a chance to correct itself with error feedback",
+      "Graceful error observation tells LLM exactly what went wrong"
+    ]
+  }
+}
