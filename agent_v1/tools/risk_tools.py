@@ -1,29 +1,25 @@
 """
-AGENT V1 — Risk Tools
-======================
-NGƯỜI LÀM: Thành viên B
+AGENT V1 — Risk & Escalation Tools
+=====================================
+NGƯỜI LÀM: Đặng Tùng Anh - 2A202600026
 
 Implement 2 functions:
 - analyze_risk(temperature_c, wind_speed_kmh, weather_code) → risk level + khuyến nghị
-- escalate_to_human(reason: str, city: str) → simulate notify travel agent
+- escalate_to_human(reason, city) → simulate notify travel agent
 
-Lưu ý V1: Risk levels đơn giản (LOW / HIGH), chưa có MEDIUM/CRITICAL.
+V1: Rule-based đơn giản, 2 mức rủi ro LOW/HIGH.
 """
 
-from typing import Optional
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# WMO codes được coi là nguy hiểm
-DANGEROUS_WEATHER_CODES = {80, 81, 82, 95, 96, 99}  # showers + thunderstorms
-SNOWY_WEATHER_CODES     = {71, 73, 75}               # snow
+from src.telemetry.logger import logger
 
 
-def analyze_risk(
-    temperature_c: float,
-    wind_speed_kmh: float,
-    weather_code: int,
-) -> dict:
+def analyze_risk(temperature_c, wind_speed_kmh, weather_code):
     """
-    Phân tích mức độ rủi ro khi đi du lịch dựa trên điều kiện thời tiết.
+    Phân tích rủi ro cơ bản dựa trên luật (Rule-based).
 
     Args:
         temperature_c: Nhiệt độ (°C)
@@ -31,69 +27,84 @@ def analyze_risk(
         weather_code: Mã thời tiết WMO
 
     Returns:
-        dict với: risk_level, reasons (list), recommendation
+        dict với: risk_level, reasons, recommendation
     """
+    advice = []
     reasons = []
+    risk_level = "LOW"
 
-    # --- Nhiệt độ ---
-    if temperature_c >= 38:
-        reasons.append(f"Extreme heat ({temperature_c}°C) — risk of heat stroke")
-    elif temperature_c <= 0:
-        reasons.append(f"Freezing temperature ({temperature_c}°C) — roads may be icy")
-    elif temperature_c >= 35:
-        reasons.append(f"Very hot ({temperature_c}°C) — stay hydrated")
+    # Validate đầu vào
+    try:
+        weather_code = int(weather_code)
+    except (TypeError, ValueError):
+        return {
+            "risk_level": "UNKNOWN",
+            "reasons": ["Lỗi: Dữ liệu thời tiết không hợp lệ (weather_code)."],
+            "recommendation": "Không thể phân tích rủi ro do dữ liệu đầu vào không hợp lệ."
+        }
 
-    # --- Gió ---
-    if wind_speed_kmh >= 60:
-        reasons.append(f"Strong wind ({wind_speed_kmh} km/h) — dangerous for outdoor activities")
-    elif wind_speed_kmh >= 40:
-        reasons.append(f"Moderate wind ({wind_speed_kmh} km/h) — be cautious")
-
-    # --- Mã thời tiết ---
-    if weather_code in DANGEROUS_WEATHER_CODES:
-        reasons.append(f"Dangerous weather condition (code {weather_code}: storms/heavy showers)")
-    elif weather_code in SNOWY_WEATHER_CODES:
-        reasons.append(f"Snow detected (code {weather_code}) — travel may be disrupted")
-
-    # --- Kết luận risk level ---
-    if len(reasons) >= 2 or weather_code in DANGEROUS_WEATHER_CODES:
+    # 1. Kiểm tra Bão (wind_speed hoặc weather_code 95-99)
+    if wind_speed_kmh > 60 or weather_code in [95, 96, 99]:
         risk_level = "HIGH"
-        recommendation = "⛔ Not recommended to travel. Consider postponing your trip."
-    elif len(reasons) == 1:
-        risk_level = "MEDIUM"
-        recommendation = "⚠️ Travel with caution. Check updates before departing."
-    else:
-        risk_level = "LOW"
-        recommendation = "✅ Conditions look good. Enjoy your trip!"
+        reasons.append(f"Gió mạnh/Bão nguy hiểm (wind: {wind_speed_kmh} km/h, code: {weather_code})")
+        advice.append("CẢNH BÁO: Gió mạnh/Bão nguy hiểm. Hạn chế ra ngoài.")
+
+    # 2. Kiểm tra Mưa (weather_code 51-82)
+    if (51 <= weather_code <= 67) or (80 <= weather_code <= 82):
+        reasons.append(f"Có mưa (weather_code: {weather_code})")
+        advice.append("Có mưa, hãy mang theo dù (ô).")
+
+    # 3. Kiểm tra Nhiệt độ
+    if temperature_c < 15:
+        reasons.append(f"Nhiệt độ thấp ({temperature_c}°C)")
+        advice.append("Trời lạnh, hãy chuẩn bị áo ấm dày.")
+    elif temperature_c < 22:
+        reasons.append(f"Nhiệt độ hơi lạnh ({temperature_c}°C)")
+        advice.append("Trời hơi se lạnh, nên mang áo khoác nhẹ.")
+    elif temperature_c > 30:
+        reasons.append(f"Nhiệt độ cao ({temperature_c}°C)")
+        if weather_code <= 2:
+            advice.append("Trời nắng nóng gay gắt, hãy mặc chống nắng hoặc kính râm.")
+        else:
+            advice.append("Trời khá nóng, bạn nên chú ý uống nhiều nước.")
+
+    recommendation = " ".join(advice) if advice else "Thời tiết ổn định, không có lưu ý đặc biệt. ✅"
+    if not reasons:
+        reasons = ["Không có yếu tố rủi ro đáng kể."]
+
+    logger.log_event("RISK_ANALYSIS_V1", {
+        "risk_level": risk_level,
+        "temperature_c": temperature_c,
+        "wind_speed_kmh": wind_speed_kmh,
+        "weather_code": weather_code,
+    })
 
     return {
         "risk_level": risk_level,
-        "reasons": reasons if reasons else ["No significant risk factors detected"],
+        "reasons": reasons,
         "recommendation": recommendation,
     }
 
 
-def escalate_to_human(reason: str, city: str) -> dict:
+def escalate_to_human(reason, city):
     """
-    Simulate việc thông báo cho travel agent khi rủi ro quá cao.
+    Giả lập việc thông báo cho nhân viên hỗ trợ (Escalation).
 
     Args:
         reason: Lý do escalation
         city: Thành phố liên quan
 
     Returns:
-        dict với: status, message, ticket_id (giả lập)
+        dict với: status, message, ticket_id
     """
     import random
     ticket_id = f"ESC-{random.randint(1000, 9999)}"
 
-    print(f"\n🚨 [ESCALATION] Notifying travel agent...")
-    print(f"   City   : {city}")
-    print(f"   Reason : {reason}")
-    print(f"   Ticket : {ticket_id}")
+    log_message = f"[ESCALATION V1] Đã thông báo cho đại lý du lịch về sự cố tại {city}. Lý do: {reason}"
+    logger.log_event("ESCALATION_V1", {"city": city, "reason": reason, "ticket_id": ticket_id})
 
     return {
         "status": "escalated",
-        "message": f"Travel agent has been notified about '{reason}' for {city}.",
+        "message": f"Đã kết nối với bộ phận hỗ trợ khách hàng để xử lý tại {city}.",
         "ticket_id": ticket_id,
     }

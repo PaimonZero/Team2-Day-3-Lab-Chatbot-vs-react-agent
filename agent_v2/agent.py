@@ -48,7 +48,7 @@ SYSTEM_PROMPT = """You are a Smart Weather Planner agent. Help users plan travel
 
 | Tool | Args | Returns |
 |------|------|---------|
-| get_coordinates | city (str) | lat, lon, name, country |
+| get_coordinates | city_name (str) | lat, lon, name, country |
 | get_weather | lat (float), lon (float) | temperature_c, wind_speed_kmh, weather_code, weather_desc |
 | analyze_risk | temperature_c (float), wind_speed_kmh (float), weather_code (int) | risk_level, reasons, recommendation |
 | escalate_to_human | reason (str), city (str) | status, message, ticket_id |
@@ -77,7 +77,7 @@ Final Answer: <your complete travel recommendation>
 User: Should I visit Bangkok this weekend?
 
 Thought: I need to get the coordinates of Bangkok first.
-Action: {"tool": "get_coordinates", "args": {"city": "Bangkok"}}
+Action: {"tool": "get_coordinates", "args": {"city_name": "Bangkok"}}
 Observation: {"lat": 13.75, "lon": 100.52, "name": "Bangkok", "country": "Thailand"}
 
 Thought: I have the coordinates. Now I'll get the current weather.
@@ -108,11 +108,18 @@ TOOL_REGISTRY = {
 
 # Schema validation đơn giản cho mỗi tool
 TOOL_SCHEMA = {
-    "get_coordinates":   {"required": ["city"],             "types": {"city": str}},
+    "get_coordinates":   {"required": ["city_name"],        "types": {"city_name": str}},
     "get_weather":       {"required": ["lat", "lon"],        "types": {"lat": float, "lon": float}},
     "analyze_risk":      {"required": ["temperature_c", "wind_speed_kmh", "weather_code"],
                           "types": {"temperature_c": (int, float), "wind_speed_kmh": (int, float), "weather_code": int}},
     "escalate_to_human": {"required": ["reason", "city"],   "types": {"reason": str, "city": str}},
+}
+
+# V2: Alias map — phòng LLM sinh sai tên tham số
+# Nếu Claude trả "city" thay vì "city_name", tự động map lại
+ARG_ALIASES = {
+    "get_coordinates": {"city": "city_name"},
+    "get_weather":     {"lat": "latitude", "lon": "longitude"},
 }
 
 
@@ -180,10 +187,32 @@ def validate_args(tool_name: str, args: dict) -> str | None:
 
 
 # ─────────────────────────────────────────────
+# Normalize Args — V2: alias fallback
+# ─────────────────────────────────────────────
+def normalize_args(tool_name: str, args: dict) -> dict:
+    """
+    Tự động đổi tên arg sai → đúng theo ARG_ALIASES.
+    Phòng trường hợp LLM sinh sai tên tham số (vd: 'city' thay vì 'city_name').
+    Không ảnh hưởng nếu LLM đã dùng đúng tên.
+    """
+    aliases = ARG_ALIASES.get(tool_name, {})
+    for wrong_key, correct_key in aliases.items():
+        if wrong_key in args and correct_key not in args:
+            logger.log_event("AGENT_V2_ARG_ALIAS", {
+                "tool": tool_name,
+                "from": wrong_key,
+                "to": correct_key,
+            })
+            args[correct_key] = args.pop(wrong_key)
+    return args
+
+
+# ─────────────────────────────────────────────
 # Run Tool
 # ─────────────────────────────────────────────
 def run_tool(tool_name: str, args: dict):
-    """Validate rồi gọi tool. V2: validate trước."""
+    """Normalize → Validate → gọi tool. V2: normalize alias trước."""
+    args = normalize_args(tool_name, args)  # ← alias fallback
     error = validate_args(tool_name, args)
     if error:
         return {"error": error}
